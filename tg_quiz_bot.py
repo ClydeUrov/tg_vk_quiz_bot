@@ -6,13 +6,8 @@ import time
 import redis
 import telegram
 from dotenv import load_dotenv
-from telegram.ext import (CallbackContext, 
-    CommandHandler, 
-    ConversationHandler,
-    Filters, 
-    MessageHandler, 
-    RegexHandler, 
-    Updater)
+from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
+                          Filters, MessageHandler, RegexHandler, Updater)
 
 from get_sentences import get_quiz
 
@@ -47,7 +42,9 @@ def handle_solution_attempt(update, context: CallbackContext):
     user = str(update.message.chat_id)
     question_number = int(redis_db.hget("user" + user, "question_number"))
     if update.message.text in quiz[question_number - 1]:
-        update.message.reply_text("Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»", reply_markup=reply_markup,
+        update.message.reply_text(
+            "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
+            reply_markup=reply_markup,
         )
         correct_answers = int(redis_db.hget("user" + user, "correct_answers"))
         correct_answers += 1
@@ -77,11 +74,14 @@ def view_score(update, context):
     total_questions = redis_db.hget("user" + user, "total_questions")
     correct_answers = redis_db.hget("user" + user, "correct_answers")
     surrender = redis_db.hget("user" + user, "surrender")
-    update.message.reply_text(f"Всего вопросов: {total_questions}\nПравильных ответов: {correct_answers}\nПотерпели неудач: {surrender}"
+    update.message.reply_text(
+        f"Всего вопросов: {total_questions}\nПравильных ответов: {correct_answers}\nПотерпели неудач: {surrender}"
     )
+
 
 def error_callback(update, context):
     logging.warning('Update "%s" caused error "%s"', update, context.error)
+
 
 def stop(update, context):
     update.message.reply_text("Программа завершена.")
