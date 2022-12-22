@@ -13,6 +13,7 @@ from get_sentences import get_quiz
 
 
 def start(update, context):
+    reply_markup = context.bot_data['reply_markup']
     update.message.reply_text(
         text="Привет! Я бот для викторин!", reply_markup=reply_markup
     )
@@ -26,6 +27,8 @@ def start(update, context):
 
 def handle_new_question_request(update, context):
     user = str(update.message.chat_id)
+    quiz = context.bot_data['quiz']
+    reply_markup = context.bot_data['reply_markup']
 
     total_questions = int(redis_db.hget("user" + user, "total_questions"))
     total_questions += 1
@@ -40,7 +43,10 @@ def handle_new_question_request(update, context):
 
 def handle_solution_attempt(update, context: CallbackContext):
     user = str(update.message.chat_id)
+    quiz = context.bot_data['quiz']
+    reply_markup = context.bot_data['reply_markup']
     question_number = int(redis_db.hget("user" + user, "question_number"))
+
     if update.message.text in quiz[question_number - 1]:
         update.message.reply_text(
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
@@ -59,9 +65,11 @@ def handle_solution_attempt(update, context: CallbackContext):
 
 def take_surrender(update, context):
     user = str(update.message.chat_id)
+    quiz = context.bot_data['quiz']
     question_number = int(redis_db.hget("user" + user, "question_number"))
+
     update.message.reply_text(
-        f'К сожалению вы сдались.. Правильный ответ:\n{quiz[question_number - 1]}\nЧтобы продолжить, нажмите "Новый вопрос"'
+        f'Пфф, слабак.. Правильный ответ:\n{quiz[question_number - 1]}\nЧтобы продолжить, нажмите "Новый вопрос"'
     )
     surrender = int(redis_db.hget("user" + user, "surrender"))
     surrender += 1
@@ -107,10 +115,13 @@ if __name__ == "__main__":
     quiz = get_quiz(parser.parse_args().file_path)
     NEW_QUESTION, TYPING_REPLY, SURRENDER = range(3)
     updater = Updater(os.environ["TG_TOKEN"], use_context=True)
-    dp = updater.dispatcher
-
     custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счёт"]]
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+
+    dp = updater.dispatcher
+    dp.bot_data['reply_markup'] = reply_markup
+    dp.bot_data['quiz'] = quiz
+
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={

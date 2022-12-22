@@ -23,7 +23,7 @@ def send_messages(event, vk, text):
     )
 
 
-def handle_new_question_request(event, vk):
+def handle_new_question_request(event, vk, quiz):
     total_questions = int(redis_db.hget("user" + event.user_id, "total_questions"))
     question_number = int(redis_db.hget("user" + event.user_id, "question_number"))
     total_questions += 1
@@ -33,7 +33,7 @@ def handle_new_question_request(event, vk):
     send_messages(event, vk, quiz[question_number])
 
 
-def handle_solution_attempt(event, vk):
+def handle_solution_attempt(event, vk, quiz):
     question_number = int(redis_db.hget("user" + event.user_id, "question_number"))
     if event.text in quiz[question_number - 1]:
         correct_answers = int(redis_db.hget("user" + event.user_id, "correct_answers"))
@@ -48,7 +48,7 @@ def handle_solution_attempt(event, vk):
         send_messages(event, vk, "Неправильно… Попробуешь ещё раз?")
 
 
-def take_surrender(event, vk):
+def take_surrender(event, vk, quiz):
     question_number = int(redis_db.hget("user" + event.user_id, "question_number"))
     surrender = int(redis_db.hget("user" + event.user_id, "surrender"))
     surrender += 1
@@ -56,11 +56,11 @@ def take_surrender(event, vk):
     send_messages(
         event,
         vk,
-        f'К сожалению вы сдались.. Правильный ответ:\n{quiz[question_number - 1]}\nЧтобы продолжить, нажмите "Новый вопрос"',
+        f'Пфф, слабак.. Правильный ответ:\n{quiz[question_number - 1]}\nЧтобы продолжить, нажмите "Новый вопрос"',
     )
 
 
-def view_score(update, context: CallbackContext):
+def view_score(event, vk):
     total_questions = redis_db.hget("user" + event.user_id, "total_questions")
     correct_answers = redis_db.hget("user" + event.user_id, "correct_answers")
     surrender = redis_db.hget("user" + event.user_id, "surrender")
@@ -109,13 +109,13 @@ if __name__ == "__main__":
                         redis_db.hset("user" + event.user_id, "surrender", 0)
                         send_messages(event, vk, "Привет! Начнём викторину?")
                     elif event.text == "Новый вопрос":
-                        handle_new_question_request(event, vk)
+                        handle_new_question_request(event, vk, quiz)
                     elif event.text == "Сдаться":
-                        take_surrender(event, vk)
+                        take_surrender(event, vk, quiz)
                     elif event.text == "Мой счёт":
                         view_score(event, vk)
                     else:
-                        handle_solution_attempt(event, vk)
+                        handle_solution_attempt(event, vk, quiz)
         except Exception:
             logging.exception("VK бот упал с ошибкой: ")
             time.sleep(10)
