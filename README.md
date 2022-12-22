@@ -30,9 +30,13 @@ python vk_quiz_bot.py
 ```
 python tg_quiz_bot.py
 ```
+- Для изменения списка вопросов для викторины, указываем другой путь к файлу.
+Пример:
+```
+python tg_quiz_bot.py -f questions\1vs1298.txt
+```
+
 Нажимаем `/start`. Пользуемся!
-
-
 
 ### Цель проекта
 
