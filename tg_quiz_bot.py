@@ -98,9 +98,9 @@ if __name__ == "__main__":
         default="questions/1vs1200.txt",
     )
     redis_db = redis.Redis(
-        host="redis-11395.c73.us-east-1-2.ec2.cloud.redislabs.com",
-        port="11395",
-        password="zAP68izn3z1g9YXKL8UOn2yZnxpcEk2z",
+        host=os.environ["REDIS_HOST"],
+        port=os.environ["REDIS_PORT"],
+        password=os.environ["REDIS_PASWORD"],
         decode_responses=True,
     )
 
