@@ -11,11 +11,14 @@ from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
 
 from get_sentences import get_quiz
 
+NEW_QUESTION, TYPING_REPLY = range(2)
+CUSTOM_KEYBOARD = [["Новый вопрос", "Сдаться"], ["Мой счёт"]]
+REPLY_MARKUP = telegram.ReplyKeyboardMarkup(CUSTOM_KEYBOARD)
+
 
 def start(update, context):
-    reply_markup = context.bot_data['reply_markup']
     update.message.reply_text(
-        text="Привет! Я бот для викторин!", reply_markup=reply_markup
+        text="Привет! Я бот для викторин!", reply_markup=REPLY_MARKUP
     )
     user = str(update.message.chat_id)
     redis_db.hset("user" + user, "question_number", 0)
@@ -28,14 +31,13 @@ def start(update, context):
 def handle_new_question_request(update, context):
     user = str(update.message.chat_id)
     quiz = context.bot_data['quiz']
-    reply_markup = context.bot_data['reply_markup']
 
     total_questions = int(redis_db.hget("user" + user, "total_questions"))
     total_questions += 1
     redis_db.hset("user" + user, "total_questions", total_questions)
 
     question_number = int(redis_db.hget("user" + user, "question_number"))
-    update.message.reply_text(text=quiz[question_number], reply_markup=reply_markup)
+    update.message.reply_text(text=quiz[question_number], reply_markup=REPLY_MARKUP)
     question_number += 2
     redis_db.hset("user" + user, "question_number", question_number)
     return TYPING_REPLY
@@ -44,21 +46,24 @@ def handle_new_question_request(update, context):
 def handle_solution_attempt(update, context: CallbackContext):
     user = str(update.message.chat_id)
     quiz = context.bot_data['quiz']
-    reply_markup = context.bot_data['reply_markup']
     question_number = int(redis_db.hget("user" + user, "question_number"))
 
     if update.message.text in quiz[question_number - 1]:
         update.message.reply_text(
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
-            reply_markup=reply_markup,
+            reply_markup=REPLY_MARKUP,
         )
         correct_answers = int(redis_db.hget("user" + user, "correct_answers"))
         correct_answers += 1
         redis_db.hset("user" + user, "correct_answers", correct_answers)
+
+        if question_number == len(quiz):
+            update.message.reply_text(text="К сожалению вопросы закончились. Спасибо за участие ^^")
+            stop(update, context)
         return NEW_QUESTION
     else:
         update.message.reply_text(
-            "Неправильно… Попробуешь ещё раз?", reply_markup=reply_markup
+            "Неправильно… Попробуешь ещё раз?", reply_markup=REPLY_MARKUP
         )
         return TYPING_REPLY
 
@@ -74,6 +79,10 @@ def take_surrender(update, context):
     surrender = int(redis_db.hget("user" + user, "surrender"))
     surrender += 1
     redis_db.hset("user" + user, "surrender", surrender)
+
+    if question_number == len(quiz):
+        update.message.reply_text(text="К сожалению вопросы закончились. Спасибо за участие ^^")
+        stop(update, context)
     return NEW_QUESTION
 
 
@@ -92,7 +101,7 @@ def error_callback(update, context):
 
 
 def stop(update, context):
-    update.message.reply_text("Программа завершена.")
+    update.message.reply_text("Викторина завершена.")
     return ConversationHandler.END
 
 
@@ -113,13 +122,9 @@ if __name__ == "__main__":
     )
 
     quiz = get_quiz(parser.parse_args().file_path)
-    NEW_QUESTION, TYPING_REPLY, SURRENDER = range(3)
     updater = Updater(os.environ["TG_TOKEN"], use_context=True)
-    custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счёт"]]
-    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
 
     dp = updater.dispatcher
-    dp.bot_data['reply_markup'] = reply_markup
     dp.bot_data['quiz'] = quiz
 
     conv_handler = ConversationHandler(
