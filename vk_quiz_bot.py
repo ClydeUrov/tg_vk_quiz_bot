@@ -44,6 +44,8 @@ def handle_solution_attempt(event, vk, quiz):
             vk,
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
         )
+        if question_number == len(quiz):
+            finish_quiz(update, context)
     else:
         send_messages(event, vk, "Неправильно… Попробуешь ещё раз?")
 
@@ -58,6 +60,8 @@ def take_surrender(event, vk, quiz):
         vk,
         f'Пфф, слабак.. Правильный ответ:\n{quiz[question_number - 1]}\nЧтобы продолжить, нажмите "Новый вопрос"',
     )
+    if question_number == len(quiz):
+        finish_quiz(update, context)
 
 
 def view_score(event, vk):
@@ -69,6 +73,10 @@ def view_score(event, vk):
         vk,
         f"Всего вопросов: {total_questions}\nПравильных ответов: {correct_answers}\nПотерпели неудач: {surrender}",
     )
+
+def finish_quiz(event, vk):
+    send_messages(event, vk, "К сожалению вопросы закончились..")
+    vk.longpoll.stop()
 
 
 if __name__ == "__main__":
